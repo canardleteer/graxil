@@ -499,6 +499,11 @@ impl GpuMiner {
                 let mut writer = writer.lock().await;
                 if let Err(e) = writer.write_all(message.as_bytes()).await {
                     error!(target: LOG_TARGET,"Failed to submit GPU share: {}", e);
+                    
+                    // NOTE(canardleteer): A better way to handle this is a oneshot back to the manager,
+                    //                     but for now, I'm just going to do this to capture a non-zero
+                    //                     status code at the container level.
+                    panic!("(intentional panic) Failed to submit GPU share: {}", e);
                 }
             }
         });
