@@ -9,6 +9,9 @@ on:
 jobs:
   docker-build:
     name: docker build
+    strategy:
+      matrix:
+        gpu-platform: [rocm, cuda]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,9 +27,9 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: docker/Dockerfile.cuda
+          file: docker/Dockerfile.${{ matrix.gpu-platform }}
           push: false
-          tags: graxil-cuda:${{ steps.vars.outputs.sha_short }}
+          tags: graxil-${{ matrix.gpu-platform }}:${{ steps.vars.outputs.sha_short }}
           # NOTE(canardleteer): Since we don't really push or publish this (or
           #                     do multi-layer builds), we don't enable these
           #                     extra steps that are more useful once that's the
