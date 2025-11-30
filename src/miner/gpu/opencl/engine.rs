@@ -79,11 +79,13 @@ impl OpenClEngine {
     /// Create a new OpenCL engine with GPU settings and optional autotuning
     pub fn new_with_settings(device: OpenClDevice, settings: GpuSettings) -> Self {
         debug!(target: LOG_TARGET,
-            "Creating OpenCL engine for device: {} with settings: intensity={}%, batch={:?}",
+            "Creating OpenCL engine for device: {} with settings: intensity={}%, batch={:?}, work_group_size={}",
             device.name(),
             settings.intensity,
-            settings.batch_size
+            settings.batch_size,
+            settings.work_group_size
         );
+        let work_groups_per_cu = settings.work_group_size;
         let context = Context::from_device(device.device()).unwrap();
         Self {
             device,
@@ -93,7 +95,7 @@ impl OpenClEngine {
             queue: None,
             initialized: false,
             gpu_settings: settings,
-            work_groups_per_cu: 8, // Default value
+            work_groups_per_cu,
             autotune_config: None,
         }
     }

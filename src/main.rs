@@ -344,16 +344,22 @@ async fn handle_gpu_mining(args: &Args, algo: Algorithm) -> Result<()> {
     // *** CRITICAL FIX: Get GPU settings from CLI args and pass them properly ***
     let gpu_settings = args.get_gpu_settings();
     info!(target: LOG_TARGET,
-        "🎮 GPU Settings - Intensity: {}%, Batch: {:?}, Power: {:?}%, Temp: {:?}°C",
+        "🎮 GPU Settings - Intensity: {}%, Batch: {:?}, Power: {:?}%, Temp: {:?}°C, WG Size: {}",
         gpu_settings.intensity,
         gpu_settings.batch_size,
         gpu_settings.power_limit,
-        gpu_settings.temp_limit
+        gpu_settings.temp_limit,
+        gpu_settings.work_group_size
     );
+
+
+    // 5070 Ti optimal:
+    // intensity=100%, batch=200000, work_groups=16
+    
 
     use log::info;
     // Create GPU manager with settings applied
-    use graxil::miner::gpu::{GpuManager, GpuMiner};
+    use graxil::miner::gpu::{self, GpuManager, GpuMiner};
 
     let mut excluded_devices: Vec<u32> = Vec::new();
 

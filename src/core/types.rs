@@ -43,6 +43,8 @@ pub struct GpuSettings {
     pub power_limit: Option<u8>,
     /// GPU temperature limit (60-85°C)
     pub temp_limit: Option<u8>,
+    /// Work Group Size (default of 8 historically)
+    pub work_group_size: usize,
 }
 
 impl Default for GpuSettings {
@@ -52,6 +54,7 @@ impl Default for GpuSettings {
             batch_size: None,
             power_limit: None,
             temp_limit: None,
+            work_group_size: 8
         }
     }
 }
@@ -312,6 +315,19 @@ pub struct Args {
         help = "GPU temperature limit (60-85°C) [75=balanced, 70=safe, 80=aggressive]"
     )]
     pub gpu_temp_limit: Option<u8>,
+
+    /// GPU temperature throttle limit in Celsius (60-85°C)
+    /// Mining will be reduced if GPU temperature exceeds this limit
+    /// Recommended: 75°C (balanced), 70°C (conservative), 80°C (aggressive)
+    /// Helps protect hardware and maintain stability
+    #[cfg(any(feature = "gpu", feature = "hybrid"))]
+    #[arg(
+        long,
+        value_name = "WG_SIZE",
+        help = "GPU Work Group Size",
+        default_value_t = 8
+    )]
+    pub gpu_work_group_size: usize,
 }
 
 /// Raw job data received from the mining pool
@@ -522,11 +538,15 @@ impl Args {
     /// Get GPU settings from command line arguments
     #[cfg(any(feature = "gpu", feature = "hybrid"))]
     pub fn get_gpu_settings(&self) -> GpuSettings {
+        use opencl3::device::CL_DEVICE_MAX_WORK_GROUP_SIZE;
+
         GpuSettings {
             intensity: self.gpu_intensity.min(100),
             batch_size: self.gpu_batch_size.map(|b| b.clamp(1_000, 1_000_000)),
             power_limit: self.gpu_power_limit.map(|p| p.clamp(50, 110)),
             temp_limit: self.gpu_temp_limit.map(|t| t.clamp(60, 85)),
+            // FIXME(canardleteer): Pull this from the device and error appropriately.
+            work_group_size: self.gpu_work_group_size.clamp(1, CL_DEVICE_MAX_WORK_GROUP_SIZE.try_into().unwrap()),
         }
     }
 

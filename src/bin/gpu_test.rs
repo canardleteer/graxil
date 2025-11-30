@@ -3,14 +3,25 @@
 // Version: 1.0.1 - Added XN field support
 
 use graxil::core::types::MiningJob;
+use graxil::miner::gpu::opencl::engine::AutotuneConfig;
 use graxil::miner::gpu::opencl::{OpenClDevice, OpenClEngine};
 use log::{error, info};
+use std::env;
 use std::time::Instant;
 
 const LOG_TARGET: &str = "tari::graxil::gpu_test";
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let logs_directory = env::current_dir().expect("Could not get current directory").join("logs");
+
+    tari_common::initialize_logging(
+        &logs_directory.join("graxil").join("log4rs_config.yml"),
+        &logs_directory.join("graxil"),
+        include_str!("../../log4rs_sample.yml"),
+    )
+    .expect("Could not set up logging");
+
     info!(target: LOG_TARGET,"🎮 GPU Mining Test - Testing RTX 4060 Ti REAL Performance");
 
     // Detect GPU devices
@@ -26,6 +37,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize engine
     let mut engine = OpenClEngine::new(device.clone());
     engine.initialize()?;
+    engine.enable_autotuning(AutotuneConfig::default());
     info!(target: LOG_TARGET,"✅ Engine initialized successfully");
 
     // Create a test job (dummy SHA3x mining job)
@@ -187,6 +199,35 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     info!(target: LOG_TARGET,"✅ XN test complete - ready for LuckyPool integration!");
+
+
+    // Autotuning
+
+    // Create a test job (dummy SHA3x mining job)
+    let test_job = MiningJob {
+        job_id: "test-job-001".to_string(),
+        mining_hash: vec![
+            0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x01, 0x23, 0x45, 0x67, 0x89, 0xab,
+            0xcd, 0xef, 0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x01, 0x23, 0x45, 0x67,
+            0x89, 0xab, 0xcd, 0xef, 0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x01, 0x23,
+            0x45, 0x67, 0x89, 0xab, 0xcd, 0xef,
+        ],
+        target_difficulty: 1000000, // Easy target for testing
+        height: 12345,
+        algo: graxil::core::types::Algorithm::Sha3x,
+        extranonce2: None, // ✅ Added XN field support - no XN for test job
+        prev_hash: None,
+        merkle_root: None,
+        version: None,
+        ntime: None,
+        nbits: None,
+        merkle_path: None,
+        target: None,
+    };
+
+    let gpu_settings = engine.run_sequential_autotune(&test_job).await?;
+
+    info!(target: LOG_TARGET,"Autotune Config: {:#?}", gpu_settings);
 
     Ok(())
 }
