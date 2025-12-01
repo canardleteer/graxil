@@ -20,7 +20,7 @@ use super::opencl::{OpenClDevice, OpenClEngine};
 use crate::core::types::{GpuSettings, MiningJob};
 use crate::miner::gpu::gpu_information_file::GpuInformationFileDevice;
 use crate::miner::gpu::{GpuInformationFile, GpuInformationFileManager, KernelType};
-use crate::miner::stats::MinerStats;
+use crate::miner::stats::{MinerStats, gpu_info};
 use crate::miner::stats::gpu_info::GpuVendor;
 
 const LOG_TARGET: &str = "tari::graxil::manager";
@@ -348,7 +348,8 @@ impl GpuManager {
         }
 
         // let batch_size = engine.get_suggested_batch_size();
-        let mut batch_size = 100;
+        // let mut batch_size = 100;
+        let mut batch_size: u32 = gpu_settings.batch_size.unwrap_or(100);
         let mut nonce_offset = thread_id as u64 * 1_000_000_000; // Unique nonce space per GPU
         let mut current_job: Option<MiningJob> = None;
         let mut last_stats_update = std::time::Instant::now();
